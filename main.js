@@ -162,14 +162,21 @@ ipcMain.handle('settings:chooseFolder', async () => {
   const folder = r.filePaths[0];
   const target = store.fileFor(folder);
   const existed = fs.existsSync(target);
-  if (!existed) {
-    let before = store.emptyData();
+  /* Les données du poste sont toujours reprises : copiées si le fichier n'existe pas,
+     fusionnées (fiche par fiche, la plus récente gagne) s'il existe déjà. */
+  let before = store.emptyData();
+  if (path.resolve(current) !== path.resolve(folder)) {
     try {
       before = store.load(current);
     } catch (e) {
-      /* ancien fichier illisible : on repart d'un fichier vide */
+      /* ancien fichier illisible : on ne reprend rien */
     }
-    store.writeAtomic(target, before);
+  }
+  if (!existed) store.writeAtomic(target, before);
+  else if (before.people.length + before.leaves.length + before.closures.length) {
+    const shared = store.load(folder);
+    store.manualSnapshot(folder, shared, Date.now(), '-avant-fusion');
+    store.writeAtomic(target, store.mergeData(shared, before));
   }
   const data = store.load(folder);
   writeSettings({ folder });

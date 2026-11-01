@@ -143,3 +143,11 @@ test('restore remplace le calendrier, garde une copie de sécurité et propage l
   assert.strictEqual(now.people.find((p) => p.id === 'b').deleted, true);
   assert.strictEqual(now.leaves.find((l) => l.id === 'l').deleted, true);
 });
+
+test('mergeData réunit les données d’un poste et celles d’un dossier existant', () => {
+  const shared = { version: 1, people: [{ id: 'd1', deleted: true, updatedAt: 5 }], leaves: [], closures: [] };
+  const local = { version: 1, people: [{ id: 'g', name: 'Gaelle', updatedAt: 1 }], leaves: [] };
+  const out = store.mergeData(shared, local);
+  assert.deepStrictEqual(out.people.map((p) => p.id).sort(), ['d1', 'g']);
+  assert.deepStrictEqual(out.closures, []);
+});

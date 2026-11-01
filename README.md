@@ -20,8 +20,8 @@ Ensuite, l'application cherche toute seule les nouvelles versions au lancement e
 
 Les données sont dans un seul fichier, `agoa-conges.json`.
 
-1. Sur un premier poste : bouton **Dossier de données**, puis **Choisir un dossier…** et sélectionner un dossier de la Dropbox partagée. Les données déjà saisies y sont copiées.
-2. Sur les autres postes : choisir **le même dossier**. Le fichier existant est repris tel quel.
+1. Sur un premier poste : bouton **Dossier de données**, puis **Choisir un dossier…** et sélectionner un dossier de la Dropbox partagée. Les données déjà saisies sur ce poste y sont copiées, ou fusionnées si le dossier contient déjà un fichier (une copie « …-avant-fusion » est gardée).
+2. Sur les autres postes : choisir **le même dossier**. Le fichier existant est conservé et complété par les données de ce poste.
 
 Le calendrier se met à jour tout seul quand un autre poste modifie le fichier. Chaque enregistrement relit le fichier avant d'écrire et fusionne fiche par fiche, donc deux personnes qui saisissent en même temps ne s'écrasent pas. Si Dropbox crée une « copie en conflit », elle est fusionnée puis renommée en `.fusionne` (rien n'est supprimé).
 
