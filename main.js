@@ -54,7 +54,7 @@ function watchData() {
   try {
     fs.mkdirSync(folder, { recursive: true });
     watcher = fs.watch(folder, { persistent: false }, (_event, name) => {
-      if (name && name !== store.FILE_NAME && !/conflict|conflit/i.test(name)) return;
+      if (name && name !== store.FILE_NAME && !/conflict|conflit/i.test(name)) return; /* .bak et sauvegardes ignorés */
       clearTimeout(debounce);
       debounce = setTimeout(() => {
         try {
@@ -138,7 +138,16 @@ function createWindow() {
 
 ipcMain.handle('settings:get', () => describe());
 
-ipcMain.handle('data:load', () => remember(store.load(readSettings().folder)));
+ipcMain.handle('data:load', () => {
+  const folder = readSettings().folder;
+  const data = store.load(folder);
+  try {
+    store.dailySnapshot(folder, data, Date.now());
+  } catch (e) {
+    /* la sauvegarde du jour ne doit pas empêcher l'ouverture */
+  }
+  return remember(data);
+});
 
 ipcMain.handle('data:save', (_e, patch) => remember(store.save(readSettings().folder, patch)));
 
@@ -183,6 +192,45 @@ ipcMain.handle('update:check', async () => {
     updateState = 'idle';
     return 'GitHub injoignable : vérifiez la connexion Internet.';
   }
+});
+
+ipcMain.handle('backup:now', () => {
+  const folder = readSettings().folder;
+  return { name: store.manualSnapshot(folder, store.load(folder), Date.now()), folder: store.backupDir(folder) };
+});
+
+ipcMain.handle('backup:restore', async () => {
+  const folder = readSettings().folder;
+  fs.mkdirSync(store.backupDir(folder), { recursive: true });
+  const r = await dialog.showOpenDialog(win, {
+    title: 'Choisir une sauvegarde à restaurer',
+    defaultPath: store.backupDir(folder),
+    filters: [{ name: 'Sauvegarde AGOA CG', extensions: ['json', 'bak'] }],
+    properties: ['openFile'],
+  });
+  if (r.canceled || !r.filePaths[0]) return null;
+  let backup;
+  try {
+    backup = store.readFile(r.filePaths[0]);
+  } catch (e) {
+    throw new Error('Ce fichier n’est pas une sauvegarde valide.');
+  }
+  const live = (list) => list.filter((x) => !x.deleted).length;
+  const c = await dialog.showMessageBox(win, {
+    type: 'warning',
+    buttons: ['Restaurer', 'Annuler'],
+    defaultId: 1,
+    cancelId: 1,
+    title: 'Restaurer une sauvegarde',
+    message: 'Remplacer le calendrier actuel par cette sauvegarde ?',
+    detail:
+      path.basename(r.filePaths[0]) + ' contient ' + live(backup.people) + ' collaborateur(s), ' + live(backup.leaves) +
+      ' absence(s) et ' + live(backup.closures) + ' jour(s) férié(s) ajouté(s).\n\nLe calendrier actuel est d’abord sauvegardé dans le dossier « sauvegardes » : vous pourrez le restaurer ensuite.',
+  });
+  if (c.response !== 0) return null;
+  const out = store.restore(folder, backup, Date.now());
+  remember(out.data);
+  return { data: out.data, name: path.basename(r.filePaths[0]) };
 });
 
 ipcMain.handle('shell:showFolder', () => {

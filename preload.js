@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('agoaApi', {
   load: () => ipcRenderer.invoke('data:load'),
   save: (patch) => ipcRenderer.invoke('data:save', patch),
   chooseFolder: () => ipcRenderer.invoke('settings:chooseFolder'),
+  backupNow: () => ipcRenderer.invoke('backup:now'),
+  restoreBackup: () => ipcRenderer.invoke('backup:restore'),
   checkUpdate: () => ipcRenderer.invoke('update:check'),
   showFolder: () => ipcRenderer.invoke('shell:showFolder'),
   saveText: (name, text) => ipcRenderer.invoke('file:saveText', name, text),

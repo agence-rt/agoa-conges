@@ -94,6 +94,7 @@ var store={
   setLeave:async function(id,d){await commit({leaves:[Object.assign({id:id},d)]})},
   delLeave:async function(id){await commit({leaves:[{id:id,deleted:true}]})}
 };
+function cleanErr(e){return e&&e.message?String(e.message).replace(/^Error invoking remote method '[^']+': (Error: )?/,''):'erreur inconnue'}
 async function run(fn){
   try{await fn();return true}
   catch(e){toast('Enregistrement impossible : '+(e&&e.message?String(e.message).replace(/^Error invoking remote method '[^']+': (Error: )?/,''):'réessayez.'));return false}
@@ -284,7 +285,21 @@ function openSettings(){
     '<p class="info">Le calendrier est enregistré dans le fichier <b>'+esc(settings.fileName)+'</b>. Placez-le dans un dossier Dropbox partagé et choisissez ce même dossier sur chaque poste : tout le monde voit alors les mêmes congés.</p>'+
     '<div class="fld"><span class="lbl">Emplacement actuel</span><div class="when" style="word-break:break-all">'+esc(settings.dataFile)+'</div></div>'+
     '<div class="acts"><button class="btn primary" type="button" id="sChoose">Choisir un dossier…</button><button class="btn" type="button" id="sOpen">Afficher le fichier</button><button class="btn push" type="button" id="sClose">Fermer</button></div>'+
+    '<div class="clist"><h3>Sauvegardes</h3><p class="hint">Chaque jour, une copie du calendrier est créée dans le sous-dossier « sauvegardes » (les 30 derniers jours sont gardés). La version précédente reste aussi à côté du fichier, sous le nom <b>'+esc(settings.fileName)+'.bak</b>.</p>'+
+    '<div class="acts"><button class="btn" type="button" id="sBack">Sauvegarder maintenant</button><button class="btn" type="button" id="sRest">Restaurer une sauvegarde…</button></div><p class="hint" id="sBackMsg" aria-live="polite"></p></div>'+
     '<p class="hint">AGOA CG, version '+esc(settings.version||'')+' · <button type="button" class="lnk" id="sUpd">Rechercher une mise à jour</button></p><p class="hint" id="sUpdMsg" aria-live="polite"></p></div>');
+  $('#sBack').addEventListener('click',async function(){
+    var msg=$('#sBackMsg');msg.textContent='Sauvegarde en cours…';
+    try{var r=await api.backupNow();msg.textContent='Sauvegarde créée : '+r.name+' (dossier « sauvegardes »).'}
+    catch(e){msg.textContent='Sauvegarde impossible : '+cleanErr(e)}
+  });
+  $('#sRest').addEventListener('click',async function(){
+    try{
+      var r=await api.restoreBackup();
+      if(!r)return;
+      applyRaw(r.data);closeModal();render();toast('Sauvegarde restaurée : '+r.name+'.');
+    }catch(e){$('#sBackMsg').textContent='Restauration impossible : '+cleanErr(e)}
+  });
   $('#sUpd').addEventListener('click',async function(){
     $('#sUpdMsg').textContent='Recherche en cours…';
     try{$('#sUpdMsg').textContent=await api.checkUpdate()}catch(e){$('#sUpdMsg').textContent='Recherche impossible.'}

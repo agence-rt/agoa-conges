@@ -103,3 +103,43 @@ test('un ancien fichier sans jours fériés ajoutés reste lisible', () => {
   assert.deepStrictEqual(out.closures, []);
   assert.strictEqual(out.people.length, 1);
 });
+
+test('save garde la version précédente dans un fichier .bak', () => {
+  const d = tmp();
+  store.save(d, { people: [{ id: 'a', name: 'A' }] }, 1000);
+  store.save(d, { people: [{ id: 'b', name: 'B' }] }, 2000);
+  const bak = JSON.parse(fs.readFileSync(store.fileFor(d) + '.bak', 'utf8'));
+  assert.deepStrictEqual(bak.people.map((p) => p.id), ['a']);
+});
+
+test('une seule sauvegarde quotidienne par jour, 30 jours conservés', () => {
+  const d = tmp();
+  const day = 24 * 3600 * 1000;
+  const t0 = new Date(2026, 0, 1, 10).getTime();
+  store.save(d, { people: [{ id: 'a', name: 'A' }] }, t0);
+  store.save(d, { people: [{ id: 'b', name: 'B' }] }, t0 + 1000);
+  assert.strictEqual(fs.readdirSync(store.backupDir(d)).length, 1);
+  for (let i = 1; i <= 40; i++) store.save(d, { people: [{ id: 'a', name: 'A' + i }] }, t0 + i * day);
+  const names = fs.readdirSync(store.backupDir(d)).filter((n) => /^agoa-conges-\d{4}-\d\d-\d\d\.json$/.test(n));
+  assert.strictEqual(names.length, 30);
+});
+
+test('pas de sauvegarde quotidienne pour un calendrier vide', () => {
+  const d = tmp();
+  assert.strictEqual(store.dailySnapshot(d, store.emptyData(), Date.now()), null);
+});
+
+test('restore remplace le calendrier, garde une copie de sécurité et propage les suppressions', () => {
+  const d = tmp();
+  store.save(d, { people: [{ id: 'a', name: 'A' }] }, 1000);
+  const backup = store.load(d);
+  store.save(d, { people: [{ id: 'b', name: 'B' }], leaves: [{ id: 'l', personId: 'b', start: '2026-11-02', end: '2026-11-02', type: 'CP' }] }, 2000);
+  const r = store.restore(d, backup, 3000);
+  assert.match(r.safety, /avant-restauration/);
+  const safe = JSON.parse(fs.readFileSync(path.join(store.backupDir(d), r.safety), 'utf8'));
+  assert.deepStrictEqual(safe.people.map((p) => p.id).sort(), ['a', 'b']);
+  const now = store.load(d);
+  assert.strictEqual(now.people.find((p) => p.id === 'a').deleted, undefined);
+  assert.strictEqual(now.people.find((p) => p.id === 'b').deleted, true);
+  assert.strictEqual(now.leaves.find((l) => l.id === 'l').deleted, true);
+});

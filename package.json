@@ -1,7 +1,7 @@
 {
   "name": "agoa-conges",
   "productName": "AGOA CG",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "AGOA CG : calendrier des congés de l'agence (mois, année, compte rendu mensuel).",
   "author": "SELARL Rémi Thollet Architecte",
   "license": "UNLICENSED",
@@ -12,7 +12,7 @@
   "private": true,
   "main": "main.js",
   "agoa": {
-    "deploiement": 2
+    "deploiement": 3
   },
   "scripts": {
     "start": "electron .",

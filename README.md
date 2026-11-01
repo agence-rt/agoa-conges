@@ -25,6 +25,14 @@ Les données sont dans un seul fichier, `agoa-conges.json`.
 
 Le calendrier se met à jour tout seul quand un autre poste modifie le fichier. Chaque enregistrement relit le fichier avant d'écrire et fusionne fiche par fiche, donc deux personnes qui saisissent en même temps ne s'écrasent pas. Si Dropbox crée une « copie en conflit », elle est fusionnée puis renommée en `.fusionne` (rien n'est supprimé).
 
+## Sauvegardes
+
+Dans le dossier de données :
+
+- `agoa-conges.json.bak` : la version précédente, mise à jour à chaque enregistrement.
+- `sauvegardes/agoa-conges-AAAA-MM-JJ.json` : une copie par jour (les 30 derniers jours sont gardés).
+- Bouton **Dossier de données** : **Sauvegarder maintenant** crée une copie datée, **Restaurer une sauvegarde…** remplace le calendrier par la copie choisie. Le calendrier actuel est d'abord copié en `…-avant-restauration.json`.
+
 Le fichier contient les noms et les dates d'absence : ne pas le placer dans un dossier public.
 
 ## Développer
