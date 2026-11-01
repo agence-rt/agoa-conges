@@ -1,22 +1,31 @@
 {
   "name": "agoa-conges",
   "productName": "AGOA CG",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "AGOA CG : calendrier des congés de l'agence (mois, année, compte rendu mensuel).",
-  "main": "main.js",
-  "author": "Agence Rémi Thollet",
+  "author": "SELARL Rémi Thollet Architecte",
   "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/agence-rt/agoa-conges.git"
+  },
   "private": true,
+  "main": "main.js",
+  "agoa": {
+    "deploiement": 1
+  },
   "scripts": {
     "start": "electron .",
     "test": "node --test \"test/**/*.test.js\"",
     "icon": "python3 scripts/make_icon.py",
-    "dist": "electron-builder --win --publish never"
+    "dist": "electron-builder --win",
+    "deploy": "node scripts/deploy.js"
   },
   "dependencies": {
     "@fontsource/barlow": "5.3.0",
     "@fontsource/barlow-condensed": "5.3.0",
-    "@fontsource/ibm-plex-mono": "5.3.0"
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "electron-updater": "6.8.10"
   },
   "devDependencies": {
     "electron": "43.7.9",
@@ -41,19 +50,32 @@
     "win": {
       "icon": "build/icon.ico",
       "target": [
-        { "target": "nsis", "arch": ["x64"] },
-        { "target": "portable", "arch": ["x64"] }
+        "nsis"
       ]
     },
     "nsis": {
       "oneClick": false,
       "perMachine": false,
+      "allowElevation": true,
       "allowToChangeInstallationDirectory": true,
+      "createStartMenuShortcut": true,
       "shortcutName": "AGOA CG",
-      "artifactName": "AGOA-CG-Setup-${version}.${ext}"
+      "runAfterFinish": true,
+      "installerLanguages": [
+        "fr_FR"
+      ],
+      "language": "1036",
+      "multiLanguageInstaller": true,
+      "deleteAppDataOnUninstall": false
     },
-    "portable": {
-      "artifactName": "AGOA-CG-Portable-${version}.${ext}"
-    }
+    "artifactName": "AGOA-CG-Setup-${version}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "agence-rt",
+        "repo": "agoa-conges",
+        "releaseType": "release"
+      }
+    ]
   }
 }

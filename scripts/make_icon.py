@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Génère l'icône AGOA CG (build/icon.png et build/icon.ico).
 
-Charte de la gamme AGOA : carré de fond rouge agence, avec uniquement le code
+Charte de la gamme AGOA : carré arrondi de fond rouge agence, avec uniquement le code
 de 2 ou 3 lettres, en gras. Pour changer la couleur ou le code, modifier les
 deux constantes ci-dessous puis relancer : python3 scripts/make_icon.py
 """
@@ -9,7 +9,7 @@ import os
 from PIL import Image, ImageDraw, ImageFont
 
 CODE = "CG"
-RED = (200, 16, 46)  # à remplacer par le rouge exact de l'agence si besoin
+RED = (179, 38, 30)  # #B3261E, rouge de l'agence (relevé sur l'icône AGOA PV)
 WHITE = (255, 255, 255)
 FONTS = [
     "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf",
@@ -28,8 +28,10 @@ def find_font(px):
 
 
 def draw():
-    img = Image.new("RGBA", (SIZE, SIZE), RED + (255,))
+    img = Image.new("RGBA", (SIZE, SIZE), (0, 0, 0, 0))
     d = ImageDraw.Draw(img)
+    m = int(SIZE * 0.04)
+    d.rounded_rectangle((m, m, SIZE - m - 1, SIZE - m - 1), radius=int(SIZE * 0.18), fill=RED + (255,))
     px = int(SIZE * 0.56)
     font = find_font(px)
     while True:

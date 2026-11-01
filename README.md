@@ -10,10 +10,11 @@ Les jours ouvrés excluent les week-ends et les jours fériés de France métrop
 
 ## Installer
 
-1. Ouvrir la page **Actions** du dépôt, puis la dernière compilation réussie, et télécharger `AGOA-CG-windows`. Une fois une version publiée, les fichiers sont aussi dans **Releases**.
-2. Lancer `AGOA-CG-Setup-x.y.z.exe` (installation) ou `AGOA-CG-Portable-x.y.z.exe` (sans installation).
+Télécharger `AGOA-CG-Setup-x.y.z.exe` dans la dernière [Release](https://github.com/agence-rt/agoa-conges/releases/latest) et le lancer. L'assistant est en français et propose le dossier d'installation.
 
 Windows peut afficher « Windows a protégé votre ordinateur » : l'application n'est pas signée. Cliquer sur **Informations complémentaires**, puis **Exécuter quand même**.
+
+Ensuite, l'application cherche toute seule les nouvelles versions au lancement et propose de redémarrer pour les installer. Le bouton **Dossier de données**, puis **Rechercher une mise à jour**, permet de vérifier à la demande.
 
 ## Partager le calendrier entre les postes
 
@@ -33,24 +34,22 @@ npm install
 npm start        # lance l'application
 npm test         # tests du stockage
 npm run icon     # régénère l'icône (build/icon.png et build/icon.ico)
-npm run dist     # compile l'installateur Windows (à lancer sous Windows)
 ```
 
 | Fichier | Rôle |
 | --- | --- |
-| `main.js`, `preload.js` | Fenêtre, accès au fichier de données, enregistrement du `.txt` |
+| `main.js`, `preload.js` | Fenêtre, accès au fichier de données, mises à jour, enregistrement du `.txt` |
 | `lib/store.js` | Lecture, fusion et écriture du fichier partagé |
 | `src/` | Interface (`index.html`, `style.css`, `app.js`) |
-| `scripts/make_icon.py` | Icône : carré rouge, code `CG` en gras (charte AGOA) |
-| `.github/workflows/build.yml` | Compilation Windows automatique |
+| `scripts/make_icon.py` | Icône : carré rouge de l'agence (`#B3261E`), code `CG` en gras (charte AGOA) |
+| `scripts/deploy.js` | Prépare un déploiement (numéro, version, journal) |
+| `.github/workflows/release.yml` | Fabrique l'installateur et publie la Release |
 
-La couleur de l'icône est dans `scripts/make_icon.py` (`RED`). La remplacer par le rouge exact de l'agence, puis lancer `npm run icon`.
-
-## Compilation et versions
-
-Chaque envoi sur `main` lance une compilation sur GitHub (onglet **Actions**). Pour publier une version téléchargeable dans **Releases** :
+## Publier un déploiement
 
 ```
-git tag v1.0.0
-git push origin v1.0.0
+npm run deploy -- "Description de la mise à jour"
+git push
 ```
+
+Le script incrémente le numéro de déploiement, aligne la version (`0.<n>.0`), met à jour `DEPLOIEMENTS.md` et crée le commit. Dès que la nouvelle version arrive sur `main`, GitHub Actions fabrique l'installateur et publie la Release (étiquette `vX.Y.Z` comprise). Les postes installés se mettent à jour seuls.

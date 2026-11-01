@@ -8,6 +8,8 @@ let win = null;
 let watcher = null;
 let debounce = null;
 let lastSerialized = '';
+let updater = null;
+let updateState = 'idle';
 
 const settingsFile = () => path.join(app.getPath('userData'), 'settings.json');
 
@@ -33,6 +35,7 @@ function describe() {
     fileName: store.FILE_NAME,
     dataFile: store.fileFor(folder),
     isDefault: path.resolve(folder) === path.resolve(app.getPath('userData')),
+    version: app.getVersion(),
   };
 }
 
@@ -68,6 +71,40 @@ function watchData() {
     watcher.on('error', () => {});
   } catch (e) {
     /* dossier inaccessible : pas de suivi en direct */
+  }
+}
+
+/* Mises à jour : les Releases GitHub du dépôt (comme AGOA PV). */
+function initUpdater() {
+  if (!app.isPackaged) return;
+  try {
+    updater = require('electron-updater').autoUpdater;
+    updater.autoDownload = true;
+    updater.autoInstallOnAppQuit = true;
+    updater.on('update-downloaded', (info) => {
+      updateState = 'ready';
+      dialog
+        .showMessageBox(win, {
+          type: 'info',
+          buttons: ['Redémarrer maintenant', 'Plus tard'],
+          defaultId: 0,
+          cancelId: 1,
+          title: 'Mise à jour AGOA CG',
+          message: 'La version ' + info.version + ' est prête.',
+          detail: 'Redémarrez pour l’installer, ou continuez : elle s’installera à la fermeture.',
+        })
+        .then((r) => {
+          if (r.response === 0) updater.quitAndInstall(false, true);
+        });
+    });
+    updater.on('error', (err) => {
+      console.warn('Mise à jour :', err && err.message);
+      if (updateState === 'checking') updateState = 'idle';
+    });
+    updater.checkForUpdates().catch(() => {});
+  } catch (e) {
+    console.warn(e);
+    updater = null;
   }
 }
 
@@ -132,6 +169,22 @@ ipcMain.handle('settings:chooseFolder', async () => {
   return { settings: describe(), data, copied: !existed };
 });
 
+ipcMain.handle('update:check', async () => {
+  if (!app.isPackaged || !updater) return 'Disponible uniquement dans la version installée.';
+  if (updateState === 'ready') return 'Une nouvelle version est prête : elle s’installera à la fermeture.';
+  try {
+    updateState = 'checking';
+    const r = await updater.checkForUpdates();
+    updateState = 'idle';
+    const v = r && r.updateInfo && r.updateInfo.version;
+    if (!r || !r.isUpdateAvailable || !v || v === app.getVersion()) return 'À jour (version ' + app.getVersion() + ').';
+    return 'Version ' + v + ' disponible : téléchargement en cours.';
+  } catch (e) {
+    updateState = 'idle';
+    return 'GitHub injoignable : vérifiez la connexion Internet.';
+  }
+});
+
 ipcMain.handle('shell:showFolder', () => {
   const s = describe();
   if (fs.existsSync(s.dataFile)) shell.showItemInFolder(s.dataFile);
@@ -163,6 +216,7 @@ if (!app.requestSingleInstanceLock()) {
     Menu.setApplicationMenu(null);
     createWindow();
     watchData();
+    initUpdater();
     app.on('activate', () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });

@@ -267,7 +267,12 @@ function openSettings(){
   openModal('<div class="sheet" role="dialog" aria-modal="true" aria-labelledby="mt"><h2 id="mt">Dossier de données</h2>'+
     '<p class="info">Le calendrier est enregistré dans le fichier <b>'+esc(settings.fileName)+'</b>. Placez-le dans un dossier Dropbox partagé et choisissez ce même dossier sur chaque poste : tout le monde voit alors les mêmes congés.</p>'+
     '<div class="fld"><span class="lbl">Emplacement actuel</span><div class="when" style="word-break:break-all">'+esc(settings.dataFile)+'</div></div>'+
-    '<div class="acts"><button class="btn primary" type="button" id="sChoose">Choisir un dossier…</button><button class="btn" type="button" id="sOpen">Afficher le fichier</button><button class="btn push" type="button" id="sClose">Fermer</button></div></div>');
+    '<div class="acts"><button class="btn primary" type="button" id="sChoose">Choisir un dossier…</button><button class="btn" type="button" id="sOpen">Afficher le fichier</button><button class="btn push" type="button" id="sClose">Fermer</button></div>'+
+    '<p class="hint">AGOA CG, version '+esc(settings.version||'')+' · <button type="button" class="lnk" id="sUpd">Rechercher une mise à jour</button></p><p class="hint" id="sUpdMsg" aria-live="polite"></p></div>');
+  $('#sUpd').addEventListener('click',async function(){
+    $('#sUpdMsg').textContent='Recherche en cours…';
+    try{$('#sUpdMsg').textContent=await api.checkUpdate()}catch(e){$('#sUpdMsg').textContent='Recherche impossible.'}
+  });
   $('#sClose').addEventListener('click',closeModal);
   $('#sOpen').addEventListener('click',function(){api.showFolder()});
   $('#sChoose').addEventListener('click',async function(){
