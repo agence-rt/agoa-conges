@@ -29,7 +29,8 @@ function hols(y){
   m[iso(y,10,11)]='Armistice 1918';m[iso(y,11,25)]='Noël';
   holCache[y]=m;return m;
 }
-var holName=function(s){return hols(+s.slice(0,4))[s]};
+var custom={};
+var holName=function(s){return hols(+s.slice(0,4))[s]||custom[s]};
 var isWork=function(s){return dow(s)<5&&!holName(s)};
 function workdays(a,b){var n=0;for(var s=a,i=0;s<=b&&i<800;s=addDays(s,1),i++){if(isWork(s))n++}return n}
 function wdClip(l,from,to){var a=l.start>from?l.start:from,b=l.end<to?l.end:to;return a>b?0:workdays(a,b)}
@@ -52,7 +53,7 @@ var view=prefs.view==='year'||prefs.view==='report'?prefs.view:'month';
 var sub=prefs.sub==='plan'?'plan':'cal';
 var hidden=new Set(Array.isArray(prefs.hidden)?prefs.hidden:[]);
 var cur={y:+today.slice(0,4),m:+today.slice(5,7)-1};
-var people=[],leaves=[],P={},rank={};
+var people=[],leaves=[],closures=[],P={},rank={};
 var canWrite=true,localMode=false,loaded=false,busy=false;
 
 function reindex(){
@@ -74,10 +75,18 @@ function uid(){return 'x'+Date.now().toString(36)+Math.random().toString(36).sli
 function applyRaw(d){
   people=(d&&d.people||[]).filter(function(x){return !x.deleted});
   leaves=(d&&d.leaves||[]).filter(function(x){return !x.deleted});
+  closures=(d&&d.closures||[]).filter(function(x){return !x.deleted&&/^\d{4}-\d\d-\d\d$/.test(x.start||'')});
+  custom={};
+  closures.forEach(function(c){
+    var e=/^\d{4}-\d\d-\d\d$/.test(c.end||'')&&c.end>=c.start?c.end:c.start,s=c.start;
+    for(var i=0;i<62&&s<=e;i++,s=addDays(s,1))custom[s]=c.label||'Jour non travaillé';
+  });
   reindex();
 }
 async function commit(patch){applyRaw(await api.save(patch));render()}
 var store={
+  addClosure:async function(d){await commit({closures:[Object.assign({id:uid()},d)]})},
+  delClosure:async function(id){await commit({closures:[{id:id,deleted:true}]})},
   addPerson:async function(d){var id=uid();await commit({people:[Object.assign({id:id},d)]});return id},
   setPerson:async function(id,d){await commit({people:[Object.assign({id:id},d)]})},
   delPerson:async function(id){await commit({people:[{id:id,deleted:true}]})},
@@ -209,6 +218,9 @@ function itemNote(it,d,withType){
   if(l.end>d.to)out.push('se poursuit en '+MOIS[+l.end.slice(5,7)-1]);
   return out.join(' · ');
 }
+function customIn(from,to){
+  return Object.keys(custom).filter(function(s){return s>=from&&s<=to}).sort().map(function(s){return [s,custom[s]]});
+}
 function reportText(d,y,m){
   var L=['COMPTE RENDU DES CONGÉS — '+cap(MOIS[m])+' '+y,
     'Jours ouvrés d’absence : '+d.tot.tot+' ('+totTxt(d.tot)+')',''];
@@ -223,6 +235,8 @@ function reportText(d,y,m){
     L.push('');
   });
   if(none.length)L.push('Sans absence : '+none.join(', '));
+  var cu=customIn(d.from,d.to);
+  if(cu.length)L.push('Jours fériés ajoutés : '+cu.map(function(c){return fd(c[0])+' ('+c[1]+')'}).join(', ')+'.');
   L.push('Jours ouvrés : hors week-ends et jours fériés.');
   return L.join('\n');
 }
@@ -249,6 +263,8 @@ function reportHtml(){
     });
     h+='</div>';
   }
+  var cu=customIn(d.from,d.to);
+  if(cu.length)h+='<p class="hint">Jours fériés ajoutés : '+esc(cu.map(function(c){return fd(c[0])+' ('+c[1]+')'}).join(', '))+'.</p>';
   if(none.length)h+='<p class="hint">Sans absence : '+esc(none.map(function(r){return r.p.name}).join(', '))+'.</p>';
   return h+'</section>';
 }
@@ -284,6 +300,50 @@ function openSettings(){
     }catch(e){toast('Changement de dossier impossible.')}
   });
 }
+
+function openClosures(){
+  var list=closures.slice().sort(function(a,b){return a.start<b.start?-1:a.start>b.start?1:0});
+  var rows=list.length?list.map(function(c){
+    return '<div class="crow"><span class="when">'+esc(fmtRange(c.start,c.end&&c.end>=c.start?c.end:c.start))+'</span><span class="cl">'+esc(c.label||'Jour non travaillé')+'</span><button type="button" class="btn danger" data-cid="'+esc(c.id)+'" aria-label="Supprimer '+esc(c.label||'ce jour')+'">Supprimer</button></div>';
+  }).join(''):'<p class="none">Aucun jour ajouté.</p>';
+  var d0=defDate();
+  openModal('<form class="sheet" id="fClo" novalidate aria-labelledby="mt"><h2 id="mt">Jours fériés</h2>'+
+    '<p class="info">Les jours fériés de France métropolitaine sont déjà pris en compte. Ajoutez ici un pont, une fermeture de l’agence ou un jour férié local : ces jours ne sont plus comptés dans les congés.</p>'+
+    '<div class="two"><div class="fld"><label for="cStart">Du</label><input id="cStart" type="date" value="'+d0+'"></div><div class="fld"><label for="cEnd">Au</label><input id="cEnd" type="date" value="'+d0+'"></div></div>'+
+    '<div class="fld"><label for="cLabel">Libellé</label><input id="cLabel" type="text" maxlength="60" placeholder="Pont de l’Ascension, fermeture de l’agence…"></div>'+
+    '<p class="info" id="cInfo" aria-live="polite"></p>'+
+    '<div class="acts"><button class="btn primary" type="submit" id="cAdd">Ajouter</button><button class="btn push" type="button" id="cClose">Fermer</button></div>'+
+    '<div class="clist"><h3>Jours ajoutés</h3>'+rows+'</div></form>');
+  var sEl=$('#cStart'),eEl=$('#cEnd'),info=$('#cInfo');
+  function upd(){
+    var a=sEl.value,b=eEl.value;
+    if(!a||!b){info.textContent='Renseignez les deux dates.';return}
+    if(b<a){info.textContent='La date de fin précède la date de début.';return}
+    var n=workdays(a,b);
+    info.innerHTML=n?'<b>'+plu(n,'jour')+' ouvré'+(n>1?'s':'')+'</b> ne '+(n>1?'seront':'sera')+' plus compté'+(n>1?'s':'')+' dans les congés.':'Ces dates sont déjà des week-ends ou des jours fériés : rien ne change.';
+  }
+  sEl.addEventListener('change',function(){if(eEl.value&&eEl.value<sEl.value)eEl.value=sEl.value;upd()});
+  eEl.addEventListener('change',upd);upd();
+  $('#cClose').addEventListener('click',closeModal);
+  $('#fClo').addEventListener('submit',async function(e){
+    e.preventDefault();if(busy)return;
+    var a=sEl.value,b=eEl.value;
+    if(!a||!b||b<a){upd();return}
+    if(workdays(a,b)===0&&addDaysCount(a,b)>62)return;
+    busy=true;
+    var ok=await run(function(){return store.addClosure({start:a,end:b,label:$('#cLabel').value.trim()||'Jour non travaillé'})});
+    busy=false;
+    if(ok){toast('Jour ajouté.');openClosures()}
+  });
+  modal.querySelectorAll('[data-cid]').forEach(function(btn){
+    btn.addEventListener('click',async function(){
+      if(busy)return;busy=true;
+      var ok=await run(function(){return store.delClosure(btn.dataset.cid)});
+      busy=false;if(ok){toast('Jour supprimé.');openClosures()}
+    });
+  });
+}
+function addDaysCount(a,b){return Math.round((parse(b)-parse(a))/864e5)+1}
 
 function emptyHtml(){
   return '<section class="panel empty"><h2>Aucun collaborateur</h2><p>Ajoutez les collaborateurs dans la colonne Équipe, puis saisissez leurs dates d’absence. Le calendrier se remplit au fur et à mesure, par mois ou sur l’année.</p>'+(canWrite?'<button type="button" class="btn" data-action="demo-load">Voir un exemple</button>':'')+'</section>';
@@ -472,6 +532,7 @@ function other(a,t){
   else if(a==='copy-report')copyReport();
   else if(a==='save-report')saveReport();
   else if(a==='open-settings')openSettings();
+  else if(a==='open-closures')openClosures();
   else if(a==='demo-load')loadDemo();
   else if(a==='demo-clear')clearDemo();
 }

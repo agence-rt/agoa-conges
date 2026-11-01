@@ -12,7 +12,7 @@ function tmp() {
 
 test('un dossier vide donne des listes vides', () => {
   const d = tmp();
-  assert.deepStrictEqual(store.load(d), { version: 1, people: [], leaves: [] });
+  assert.deepStrictEqual(store.load(d), { version: 1, people: [], leaves: [], closures: [] });
 });
 
 test('save ajoute des fiches et les date', () => {
@@ -84,4 +84,22 @@ test('les fiches sans identifiant valide sont ignorées', () => {
   const d = tmp();
   const out = store.save(d, { people: [{ name: 'Sans id' }, { id: '', name: 'Vide' }, { id: 'ok', name: 'OK' }] }, 5);
   assert.deepStrictEqual(out.people.map((p) => p.id), ['ok']);
+});
+
+test('les jours fériés ajoutés sont enregistrés, fusionnés et supprimables', () => {
+  const d = tmp();
+  store.save(d, { closures: [{ id: 'c1', start: '2026-11-13', end: '2026-11-13', label: 'Pont' }] }, 1000);
+  let out = store.save(d, { closures: [{ id: 'c2', start: '2026-12-24', end: '2026-12-24', label: 'Fermeture' }] }, 1100);
+  assert.deepStrictEqual(out.closures.map((c) => c.id).sort(), ['c1', 'c2']);
+  out = store.save(d, { closures: [{ id: 'c1', deleted: true }] }, 1200);
+  assert.strictEqual(out.closures.find((c) => c.id === 'c1').deleted, true);
+  assert.strictEqual(store.load(d).closures.length, 2);
+});
+
+test('un ancien fichier sans jours fériés ajoutés reste lisible', () => {
+  const d = tmp();
+  fs.writeFileSync(store.fileFor(d), JSON.stringify({ version: 1, people: [{ id: 'a', name: 'A' }], leaves: [] }));
+  const out = store.load(d);
+  assert.deepStrictEqual(out.closures, []);
+  assert.strictEqual(out.people.length, 1);
 });

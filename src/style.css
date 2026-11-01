@@ -267,3 +267,9 @@ input:disabled,select:disabled{opacity:.7}
 @media (prefers-reduced-motion:no-preference){
   .btn,.icon,.chip{transition:border-color .12s,filter .12s}
 }
+
+.crow{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr) auto;gap:4px 12px;align-items:center;padding:8px 0;border-top:1px solid var(--line2);font-size:14px}
+.crow .cl{overflow-wrap:anywhere}
+.clist{margin-top:18px}
+.clist h3{font-family:var(--f-display);font-size:18px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+@media (max-width:700px){.crow{grid-template-columns:minmax(0,1fr) auto}.crow .cl{grid-row:2;grid-column:1}}

@@ -1,1 +1,1 @@
-Déploiement n°1 — Première version : calendrier des congés, compte rendu mensuel CP / RTT, fichier de données partagé
+Déploiement n°2 — Bouton Jours fériés : ajout de ponts, fermetures ou jours fériés locaux, exclus du décompte des congés
