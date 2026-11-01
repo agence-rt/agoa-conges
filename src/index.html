@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'">
+<title>AGOA CG — Congés</title>
+<link rel="stylesheet" href="../node_modules/@fontsource/barlow/400.css">
+<link rel="stylesheet" href="../node_modules/@fontsource/barlow/500.css">
+<link rel="stylesheet" href="../node_modules/@fontsource/barlow/600.css">
+<link rel="stylesheet" href="../node_modules/@fontsource/barlow-condensed/500.css">
+<link rel="stylesheet" href="../node_modules/@fontsource/barlow-condensed/600.css">
+<link rel="stylesheet" href="../node_modules/@fontsource/barlow-condensed/700.css">
+<link rel="stylesheet" href="../node_modules/@fontsource/ibm-plex-mono/400.css">
+<link rel="stylesheet" href="../node_modules/@fontsource/ibm-plex-mono/500.css">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app" id="app">
+  <header class="top">
+    <div>
+      <h1>Calendrier des congés</h1>
+      <p class="sub" id="sub">Chargement…</p>
+    </div>
+    <div class="hbtns"><button class="btn" type="button" data-action="open-settings">Dossier de données</button><button class="btn primary" id="btnAdd" type="button" data-action="open-add">+ Ajouter une absence</button></div>
+  </header>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <div class="bar">
+    <div class="seg" role="group" aria-label="Affichage">
+      <button type="button" id="vMonth" data-action="view" data-v="month" aria-pressed="true">Mois</button>
+      <button type="button" id="vYear" data-action="view" data-v="year" aria-pressed="false">Année</button>
+      <button type="button" id="vReport" data-action="view" data-v="report" aria-pressed="false">Compte rendu</button>
+    </div>
+    <div class="nav">
+      <button type="button" class="icon" data-action="prev" aria-label="Précédent"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M15 5l-7 7 7 7" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+      <h2 id="navLabel" aria-live="polite"></h2>
+      <button type="button" class="icon" data-action="next" aria-label="Suivant"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2"/></svg></button>
+      <button type="button" class="btn" data-action="today">Aujourd’hui</button>
+    </div>
+    <div class="seg" id="subSeg" role="group" aria-label="Présentation du mois">
+      <button type="button" id="sCal" data-action="sub" data-v="cal" aria-pressed="true">Calendrier</button>
+      <button type="button" id="sPlan" data-action="sub" data-v="plan" aria-pressed="false">Planning</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <main id="main"></main>
+    <aside class="panel team" id="team">
+      <div class="th"><h2>Équipe</h2><span class="count" id="teamCount">0</span></div>
+      <ul class="plist" id="plist"></ul>
+      <div class="tools">
+        <button type="button" class="lnk" data-action="show-all">Tout afficher</button>
+        <button type="button" class="lnk" data-action="hide-all">Tout masquer</button>
+      </div>
+      <form id="addPerson" class="addp" autocomplete="off">
+        <label for="newPerson">Ajouter un collaborateur</label>
+        <div class="inl">
+          <input id="newPerson" type="text" maxlength="60" placeholder="Prénom Nom">
+          <button class="btn" type="submit">Ajouter</button>
+        </div>
+      </form>
+      <p class="hint" id="teamHint"></p>
+    </aside>
+  </div>
+  <p class="foot">Jours fériés de France métropolitaine. Les jours ouvrés excluent les week-ends et les jours fériés.</p>
+</div>
+<div class="overlay" id="modal" hidden></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<script src="app.js"></script>
+</body>
+</html>
