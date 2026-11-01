@@ -30,7 +30,8 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          if gh release view "v$VERSION" > /dev/null 2>&1; then
+          # Rien à faire si la Release existe avec son fichier de mise à jour (latest.yml).
+          if gh release view "v$VERSION" --json assets --jq '.assets[].name' 2>/dev/null | grep -qx "latest.yml"; then
             echo "La Release v$VERSION existe déjà : rien à publier."
             echo "skip=true" >> "$GITHUB_OUTPUT"
           else
@@ -50,6 +51,19 @@ jobs:
       - name: Tests
         if: steps.v.outputs.skip == 'false'
         run: npm test
+
+      # La Release est créée avant l'envoi des fichiers : sans cela, les envois en
+      # parallèle tentent de la créer deux fois et l'un d'eux échoue.
+      - name: Préparer la Release
+        if: steps.v.outputs.skip == 'false'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V="v${{ steps.v.outputs.version }}"
+          if ! gh release view "$V" > /dev/null 2>&1; then
+            gh release create "$V" --target "${{ github.sha }}" --title "$V" --notes-file build/release-notes.md
+          fi
 
       - name: Fabrication et publication
         if: steps.v.outputs.skip == 'false'
